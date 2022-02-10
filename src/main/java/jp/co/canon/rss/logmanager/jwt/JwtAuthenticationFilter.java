@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 @Slf4j
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+	public static final String TOKEN_PREFIX = "Bearer ";
+	public static final String HEADER_STRING = "Authorization";
 
 	private final JwtTokenProvider jwtTokenProvider;
 
@@ -28,13 +30,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
 		try {
 			if (!request.getServletPath().contains("/api/v1/auth/login")) {
-				String token = jwtTokenProvider.resolveJwtToken(request).getAccessToken();
+				String token = null;
+
+				if (request.getServletPath().contains("/api/v1/logdownload")) {
+					if(request.getHeader(HEADER_STRING) != null) {
+						String jwt = request.getHeader(HEADER_STRING);
+						token = jwt.replace(TOKEN_PREFIX, "");
+					}
+				}
+				else
+					token = jwtTokenProvider.resolveJwtToken(request).getAccessToken();
+
 				if (token != null && jwtTokenProvider.isTokenValid(token)) {
 					Authentication authentication = jwtTokenProvider.getAuthentication(token);
 					SecurityContextHolder.getContext().setAuthentication(authentication);
-
 				}
 			}
+
 			filterChain.doFilter(request, response);
 		} catch (UsernameNotFoundException e) {
 			log.error(e.getMessage());

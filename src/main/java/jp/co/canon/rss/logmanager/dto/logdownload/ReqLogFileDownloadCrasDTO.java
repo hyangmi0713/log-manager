@@ -12,6 +12,7 @@ import java.util.List;
 @Accessors(chain = true)
 @NoArgsConstructor
 public class ReqLogFileDownloadCrasDTO {
+    private String step;
     private String ftp_type;
     private List<ResLogFileDTO> lists;
     private String command;

@@ -78,21 +78,6 @@ public class Scheduler {
         }
     }
 
-//    public ResMakeLogger makeLogger(StepEntity stepEntity) {
-//        RandomString randomString = new RandomString();
-//        String filename = stepEntity.getStepType() + "_" + randomString.numberGen(8);
-//
-//        File file = Paths.get(loggingPath + filename + File.separator, filename + ".log").toFile();
-//        FileLog fileLog = new FileLog(file, filename);
-//        Logger logger = fileLog.getLogger();
-//
-//        ResMakeLogger resMakeLogger = new ResMakeLogger()
-//                .setLogger(logger)
-//                .setRid(filename);
-//
-//        return resMakeLogger;
-//    }
-
     public Trigger getTrigger(String cron) {
         return new CronTrigger(cron);
     }

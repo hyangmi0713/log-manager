@@ -6,6 +6,7 @@ import jp.co.canon.rss.logmanager.controller.swagger.LogDownloadControllerInstru
 import jp.co.canon.rss.logmanager.dto.logdownload.*;
 import jp.co.canon.rss.logmanager.service.LogDownloadService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,9 @@ import javax.validation.Valid;
 @RestController
 @RequestMapping(ReqURLController.API_DEFAULT_LOG_URL)
 public class LogDownloadController implements LogDownloadControllerInstruction {
+    @Value("${log-download.log-download-dir}")
+    private String logDownloadPath;
+
     private LogDownloadService logDownloadService;
 
     public LogDownloadController(LogDownloadService logDownloadService) {
@@ -85,6 +89,20 @@ public class LogDownloadController implements LogDownloadControllerInstruction {
         try {
             ResCheckFileDownloadDTO resCheckFileDownloadDTO = logDownloadService.getCheckFileDownload(clientId);
             return ResponseEntity.status(HttpStatus.OK).body(resCheckFileDownloadDTO);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    // START FILE DOWNLOAD(Rapid Collector)
+    @GetMapping(ReqURLController.API_GET_START_FILE_DOWNLOAD)
+    public ResponseEntity<?> startFileDownload(HttpServletRequest request,
+                                               @Valid @PathVariable(value = "fileName") @NotNull String fileName) {
+        try {
+            ResponseEntity<?> resCheckFileDownloadDTO = logDownloadService.startFileDownload(request, logDownloadPath, fileName);
+            return resCheckFileDownloadDTO;
         } catch (ResponseStatusException e) {
             throw e;
         } catch (Exception e) {

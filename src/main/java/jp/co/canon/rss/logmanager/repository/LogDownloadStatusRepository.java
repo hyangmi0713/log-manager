@@ -29,4 +29,9 @@ public interface LogDownloadStatusRepository extends JpaRepository<LogDownloadSt
     @Modifying
     @Query(value="UPDATE log_manager.log_download_status set client_id = :client_id where id = :id", nativeQuery = true)
     void updateClientId(@Param("id") int id, @Param("client_id") String client_id);
+
+    @Transactional
+    @Modifying
+    @Query(value="UPDATE log_manager.log_download_status set status = :status where id = :id", nativeQuery = true)
+    void updateStatus(@Param("id") int id, @Param("status") String status);
 }

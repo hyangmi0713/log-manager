@@ -11,6 +11,7 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 public class ReqLogFileSearchCrasDTO {
     private String id;
+    private String step;
     private String start_date;
     private String end_date;
     private String [] machine;

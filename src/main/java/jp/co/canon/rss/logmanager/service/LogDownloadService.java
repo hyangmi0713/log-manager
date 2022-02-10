@@ -11,12 +11,18 @@ import jp.co.canon.rss.logmanager.vo.LogDownloadStatusVo;
 import jp.co.canon.rss.logmanager.vo.SiteVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.annotation.PostConstruct;
-import java.io.File;
+import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -115,7 +121,7 @@ public class LogDownloadService {
                     reqLogFileSearchDTO.getUser(), reqLogFileSearchDTO.getFab());
 
             if (siteVo == null)
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested \"user\" or \"fab\" are not correct.");
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested 'user' or 'fab' are not correct.");
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -128,11 +134,13 @@ public class LogDownloadService {
 
             LogDownloadStatusVo logDownloadStatusVo = new LogDownloadStatusVo()
                     .setSiteId(siteVo.get().getSiteId())
-                    .setSiteVoList(siteRepository.findBySiteId(siteVo.get().getSiteId()));
+                    .setSiteVoList(siteRepository.findBySiteId(siteVo.get().getSiteId()))
+                    .setStatus(ReqURLController.DOWNLOAD_STATUS_NOTBUILD);
 
             LogDownloadStatusVo initialSave = logDownloadStatusRepository.save(logDownloadStatusVo);
 
             ReqLogFileSearchCrasDTO reqLogFileSearchCrasDTO = new ReqLogFileSearchCrasDTO()
+                    .setStep("rapidDownload")
                     .setStart_date(reqLogFileSearchDTO.getStart_date().replaceAll("[- :]", ""))
                     .setEnd_date(reqLogFileSearchDTO.getEnd_date().replaceAll("[- :]", ""))
                     .setMachine(reqLogFileSearchDTO.getMachine())
@@ -159,16 +167,16 @@ public class LogDownloadService {
             logDownloadStatusRepository.updateRidCrasSearch(initialSave.getId(), reqGetRidDTO.getRid());
             logDownloadStatusRepository.updateClientId(initialSave.getId(), clientId);
 
-            return new ResClientIdDTO().setClientId(clientId);
+            return new ResClientIdDTO().setRequestId(clientId);
         } else
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "\"ftp_type\" only supports \"ftp\", \"vftp_sss\".");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'ftp_type' only supports 'ftp', 'vftp_sss'.");
     }
 
     public ResLogFileSearchDTO checkLogFileSearch(String clientId) throws Exception {
         LogDownloadStatusVo logDownloadStatusVo = logDownloadStatusRepository.findByClientId(clientId);
 
         if(logDownloadStatusVo==null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested \"requestId\" is not correct.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested 'requestId' is not correct.");
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(ReqURLController.JOB_CONTENT_TYPE, ReqURLController.JOB_APPLICATION_JSON);
@@ -200,7 +208,7 @@ public class LogDownloadService {
         LogDownloadStatusVo logDownloadStatusVo = logDownloadStatusRepository.findByClientId(reqLogFileDownloadDTO.getRequestId());
 
         if(logDownloadStatusVo==null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested \"requestId\" is not correct.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested 'requestId' is not correct.");
 
         if(reqLogFileDownloadDTO.getFtp_type().equals(ReqURLController.DOWNLOAD_FTP_CRAS)
                 || reqLogFileDownloadDTO.getFtp_type().equals(ReqURLController.DOWNLOAD_VFTP_COMPAT_CRAS)
@@ -215,6 +223,7 @@ public class LogDownloadService {
             log.info("client-id : " + logDownloadStatusVo.getClientId());
 
             ReqLogFileDownloadCrasDTO reqLogFileDownloadCrasDTO = new ReqLogFileDownloadCrasDTO()
+                    .setStep("rapidDownload")
                     .setFtp_type(reqLogFileDownloadDTO.getFtp_type())
                     .setLists(reqLogFileDownloadDTO.getLists())
                     .setCommand(reqLogFileDownloadDTO.getCommand());
@@ -237,14 +246,14 @@ public class LogDownloadService {
             return responseGetRid;
         }
         else
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "\"ftp_type\" only supports \"ftp\", \"vftp_sss\", \"vftp_compat\".");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "'ftp_type' only supports 'ftp', 'vftp_sss', 'vftp_compat'.");
     }
 
     public ResCheckFileDownloadDTO getCheckFileDownload(String requestId) throws Exception {
         LogDownloadStatusVo logDownloadStatusVo = logDownloadStatusRepository.findByClientId(requestId);
 
         if(logDownloadStatusVo==null)
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested \"requestId\" is not correct.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "The requested 'requestId' is not correct.");
 
         HttpHeaders headers = new HttpHeaders();
         headers.set(ReqURLController.JOB_CONTENT_TYPE, ReqURLController.JOB_APPLICATION_JSON);
@@ -255,7 +264,7 @@ public class LogDownloadService {
         HttpEntity<Object> reqCheckFileDownload = new HttpEntity("", headers);
 
         ResCheckFileDownloadDTO resCheckFileDownloadDTO = new ResCheckFileDownloadDTO()
-                .setRequestId(logDownloadStatusVo.getRidCrasDownload());
+                .setRequestId(logDownloadStatusVo.getClientId());
 
         CallRestAPI callRestAPI = new CallRestAPI();
         ResponseEntity<?> resFileDownload = callRestAPI.exchange(
@@ -268,44 +277,87 @@ public class LogDownloadService {
 
         ResCheckFileDownloadCrasDTO resCheckFileDownloadCrasDTO = (ResCheckFileDownloadCrasDTO) resFileDownload.getBody();
 
-        if(resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_SUCCESS)) {
-            LogDownloadThread logDownloadThread = new LogDownloadThread(resCheckFileDownloadCrasDTO, logDownloadStatusVo, reqHeaders, logDownloadPath);
+        if(resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_SUCCESS_CRAS)
+                && logDownloadStatusVo.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_NOTBUILD)) {
+            LogDownloadThread logDownloadThread = new LogDownloadThread(
+                    resCheckFileDownloadCrasDTO, logDownloadStatusVo, reqHeaders, logDownloadPath, logDownloadStatusRepository);
             Thread thread = new Thread(logDownloadThread, "logDownloadThread-");
             thread.start();
 
-            Thread.State threadState = thread.getState();
-
-            if(threadState == Thread.State.TERMINATED) {
-                List<String> downloadUrlList = new ArrayList<>();
-                for(String downloadPath : resCheckFileDownloadCrasDTO.getDownload_url()) {
-                    String fileName = downloadPath.split(File.separator)[downloadPath.split(File.separator).length - 1];
-                    downloadUrlList.add(logDownloadPath + File.separator + fileName);
-                }
-                resCheckFileDownloadDTO.setStatus(ReqURLController.DOWNLOAD_STATUS_SUCCESS)
-                        .setDownload_url(downloadUrlList.toArray(new String[downloadUrlList.size()]))
-                        .setError(new String[0]);
-            }
-            else {
-                resCheckFileDownloadDTO.setStatus(ReqURLController.DOWNLOAD_STATUS_PROCESSING)
-                        .setDownload_url(new String[0])
-                        .setError(new String[0]);
-            }
-        }
-        else if (resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_ERROR)) {
-            resCheckFileDownloadDTO.setStatus(ReqURLController.DOWNLOAD_STATUS_ERROR)
+            resCheckFileDownloadDTO.setStatus(ReqURLController.DOWNLOAD_STATUS_PROCESSING)
                     .setDownload_url(new String[0])
                     .setError(resCheckFileDownloadCrasDTO.getError());
         }
-        else if (resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_RUNNING)) {
+        else if (resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_ERROR_CRAS)) {
+            logDownloadStatusRepository.updateStatus(logDownloadStatusVo.getId(), ReqURLController.DOWNLOAD_STATUS_FAILURE);
+            return resCheckFileDownloadDTO;
+        }
+        else if (resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_RUNNING_CRAS)) {
+            logDownloadStatusRepository.updateStatus(logDownloadStatusVo.getId(), ReqURLController.DOWNLOAD_STATUS_PROCESSING_CRAS);
+        }
+        else if (resCheckFileDownloadCrasDTO.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_NOTADA_CRAS)) {
+            logDownloadStatusRepository.updateStatus(logDownloadStatusVo.getId(), ReqURLController.DOWNLOAD_STATUS_NOTADA);
+            return resCheckFileDownloadDTO;
+        }
+
+        LogDownloadStatusVo logDownloadStatusVoLast = logDownloadStatusRepository.findByClientId(requestId);
+
+        if(logDownloadStatusVoLast.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_PROCESSING)) {
             resCheckFileDownloadDTO.setStatus(ReqURLController.DOWNLOAD_STATUS_PROCESSING)
                     .setDownload_url(new String[0])
                     .setError(new String[0]);
         }
-
-        logDownloadStatusRepository.save(logDownloadStatusVo.setStatus(resCheckFileDownloadDTO.getStatus())
+        else if(logDownloadStatusVoLast.getStatus().equals(ReqURLController.DOWNLOAD_STATUS_SUCCESS)) {
+            List<String> downloadUrlList = new ArrayList<>();
+            for(String downloadPath : resCheckFileDownloadCrasDTO.getDownload_url()) {
+                String fileName = downloadPath.split("/")[downloadPath.split("/").length - 1];
+                downloadUrlList.add(ReqURLController.API_DEFAULT_LOG_URL + "/" + fileName);
+            }
+            resCheckFileDownloadDTO.setStatus(ReqURLController.DOWNLOAD_STATUS_SUCCESS)
+                    .setDownload_url(downloadUrlList.toArray(new String[downloadUrlList.size()]))
+                    .setError(new String[0]);
+        }
+        logDownloadStatusRepository.save(logDownloadStatusVoLast
+                .setStatus(resCheckFileDownloadDTO.getStatus())
                 .setDownloadURL(resCheckFileDownloadDTO.getDownload_url())
                 .setError(resCheckFileDownloadDTO.getError()));
 
         return resCheckFileDownloadDTO;
+    }
+
+    public ResponseEntity<?> startFileDownload(HttpServletRequest request, String logDownloadPath, String fileName) {
+        try {
+            Path filePath = Paths.get(logDownloadPath).toAbsolutePath().normalize().resolve(fileName).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            String contentType = null;
+
+            if(resource.exists()) {
+                try {
+                    contentType = request.getServletContext().getMimeType(resource.getFile().getAbsolutePath());
+                } catch (IOException ex) {
+                    log.info("Could not determine file type.");
+                }
+
+                // Fallback to the default content type if type could not be determined
+                if(contentType == null) {
+                    contentType = "application/octet-stream";
+                }
+
+                return ResponseEntity
+                        .status(HttpStatus.OK)
+                        .contentType(MediaType.parseMediaType(contentType))
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                        .body(resource);
+            }
+            else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found " + fileName);
+            }
+        } catch (MalformedURLException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "File not found " + fileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

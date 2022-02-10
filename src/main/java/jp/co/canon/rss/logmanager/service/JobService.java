@@ -247,7 +247,7 @@ public class JobService {
 		}
 	}
 
-	public int manageJobOnCras(String flag, JobEntity jobEntity) throws ConvertException {
+	public int manageJobOnCras(String flag, JobEntity jobEntity) {
 		String crasServer = String.format(ReqURLController.API_DEFAULT_CRAS_SERVER_JOB,
 				jobEntity.getSiteVo().getCrasAddress(), jobEntity.getSiteVo().getCrasPort());
 
@@ -555,7 +555,8 @@ public class JobService {
 					throw new IllegalStateException("Unexpected value: " + stepEntity.getStepType());
 			}
 
-			ManualJobThread manualJobThread = new ManualJobThread(manualSchedulerStrategy, stepEntity, scheduler, scheduledTasks, manual);
+			ManualJobThread manualJobThread = new ManualJobThread(
+					manualSchedulerStrategy, stepEntity, scheduler, scheduledTasks, manual);
 			Thread manualThread = new Thread(manualJobThread, "manualThread-");
 			manualThread.start();
 		} catch (ResponseStatusException e) {
@@ -566,161 +567,4 @@ public class JobService {
 			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
-
-//	public List<ResTimeLineDTO> getTimeLine(int remoteJobId) {
-//		try {
-//			ResRemoteJobStatusDTO resRemoteJobStatusDTO = getStatusRemoteJob(remoteJobId);
-//			if(resRemoteJobStatusDTO.getStop() == true)
-//				throw new ResponseStatusException(HttpStatus.NOT_FOUND);
-//
-//			List<HistoryVo> historyVoList = historyRepository.findByJobIdAndType(remoteJobId,
-//					ReqURLController.JOB_TYPE_REMOTEJOB, Sort.by(Sort.Direction.ASC, "runningTime"));
-//			List<ResTimeLineDTO> resTimeLineDTOList = new ArrayList<>();
-//			int newJobNumber = 0;
-//
-//			if(historyVoList.size()>=ReqURLController.JOB_TIMELINE) {
-//				for(int i=historyVoList.size()-ReqURLController.JOB_TIMELINE; i<historyVoList.size(); i++) {
-//					ResTimeLineDTO resTimeLineDTO = HistoryVoResTimeLineDtoMapper.INSTANCE.mapHistoryVotoDto(historyVoList.get(i));
-//					resTimeLineDTOList.add(resTimeLineDTO);
-//				}
-//				newJobNumber = ReqURLController.JOB_TIMELINE;
-//			}
-//			else {
-//				for(HistoryVo historyVo : historyVoList) {
-//					ResTimeLineDTO resTimeLineDTO = HistoryVoResTimeLineDtoMapper.INSTANCE.mapHistoryVotoDto(historyVo);
-//					resTimeLineDTOList.add(resTimeLineDTO);
-//				}
-//				newJobNumber = (ReqURLController.JOB_TIMELINE*2) - historyVoList.size();
-//			}
-//
-//			List<SchedulerVo> schedulerVoList = schedulerRepository.findByJobId(remoteJobId);
-//			List<ResTimeLineDTO> makeTimeLine = new ArrayList<>();
-//
-//			if(resTimeLineDTOList.size()>0)
-//				makeTimeLine = makeTimeLine(schedulerVoList, newJobNumber, resTimeLineDTOList);
-//			else
-//				makeTimeLine = makeTimeLine(schedulerVoList, newJobNumber, resTimeLineDTOList);
-//
-//			Collections.sort(makeTimeLine, new Comparator<ResTimeLineDTO>() {
-//				@Override
-//				public int compare(ResTimeLineDTO o1, ResTimeLineDTO o2) {
-//					return o1.getStart().compareTo(o2.getStart());
-//				}
-//			});
-//
-//			for (int i = 0; i < newJobNumber; i++)
-//				resTimeLineDTOList.add(makeTimeLine.get(i));
-//
-//			return resTimeLineDTOList;
-//		} catch (ResponseStatusException e) {
-//			log.error(e.getMessage());
-//			throw e;
-//		} catch (Exception e) {
-//			log.error(e.getMessage());
-//			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
-//		}
-//	}
-//
-//	public List<ResTimeLineDTO> makeTimeLine(List<SchedulerVo> schedulerVoList, int newJobNumber, List<ResTimeLineDTO> timeLineDTOList) {
-//		List<ResTimeLineDTO> resTimeLineDTOList = new ArrayList<>();
-//
-//		LocalDateTime currentDay = LocalDateTime.now();
-//
-//		for(SchedulerVo schedulerVo : schedulerVoList) {
-//			String lastStartTime = "empty";
-//
-//			for (int num = timeLineDTOList.size()-1; num >= 0; num--) {
-//				if (timeLineDTOList.get(num).getName().equals(schedulerVo.getStep())) {
-//					lastStartTime = timeLineDTOList.get(num).getStart();
-//					break;
-//				}
-//			}
-//
-//			if (!schedulerVo.getCycle().equals("none")) {
-//				LocalDateTime settingTime = LocalDateTime.parse(schedulerVo.getSettingTime(),
-//						DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//
-//				if(lastStartTime.equals("empty"))
-//					lastStartTime = settingTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//
-//				for (int i = 0; i < newJobNumber*2; i++) {
-//					String setStartCycle = null;
-//
-//					if (i == 0 && settingTime.isAfter(LocalDateTime.parse(
-//							String.format("%s", lastStartTime), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-//							&& settingTime.equals(lastStartTime)) {
-//						ResTimeLineDTO resTimeLineDTONone = new ResTimeLineDTO()
-//								.setName(schedulerVo.getStep())
-//								.setStatus(ReqURLController.JOB_STATUS_NOTBUILD)
-//								.setIsManual(false)
-//								.setStart(settingTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
-//						resTimeLineDTOList.add(resTimeLineDTONone);
-//					}
-//
-//					switch (schedulerVo.getCycle()) {
-//						case ReqURLController.JOB_CYCLE_DAY:
-//							setStartCycle = settingTime.plusDays(
-//									schedulerVo.getPeriod()*i).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//							break;
-//						case ReqURLController.JOB_CYCLE_HOUR:
-//							setStartCycle = settingTime.plusHours(
-//									schedulerVo.getPeriod()*i).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//							break;
-//						case ReqURLController.JOB_CYCLE_MINUTE:
-//							setStartCycle = settingTime.plusMinutes(
-//									schedulerVo.getPeriod()*i).format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//							break;
-//					}
-//
-//					if(!setStartCycle.equals(settingTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))) {
-//						ResTimeLineDTO resTimeLineDTONone = new ResTimeLineDTO()
-//								.setName(schedulerVo.getStep())
-//								.setStatus(ReqURLController.JOB_STATUS_NOTBUILD)
-//								.setIsManual(false)
-//								.setStart(setStartCycle);
-//						resTimeLineDTOList.add(resTimeLineDTONone);
-//					}
-//				}
-//			}
-//			else {
-//				int plusDay = 0;
-//				Boolean currentIsAfter = false;
-//
-//				LocalDateTime startDay;
-//
-//				if(!lastStartTime.equals("empty"))
-//					startDay = LocalDateTime.parse(lastStartTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//				else
-//					startDay = LocalDateTime.parse(String.format("%s %s", currentDay.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-//							schedulerVo.getSettingTime()),
-//							DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-//
-//				if (currentDay.isAfter(LocalDateTime.parse(String.format("%s %s", currentDay.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")),
-//						schedulerVo.getSettingTime()),
-//						DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))))
-//					currentIsAfter = true;
-//
-//				for (int i = 0; i < newJobNumber; i++) {
-//					String setStartNone;
-//
-//					if (currentIsAfter)
-//						setStartNone = String.format("%s %s",
-//								startDay.plusDays(plusDay + 1).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), schedulerVo.getSettingTime());
-//					else
-//						setStartNone = String.format("%s %s",
-//								startDay.plusDays(plusDay).format(DateTimeFormatter.ofPattern("yyyy-MM-dd")), schedulerVo.getSettingTime());
-//
-//					ResTimeLineDTO resTimeLineDTONone = new ResTimeLineDTO()
-//							.setName(schedulerVo.getStep())
-//							.setStatus(ReqURLController.JOB_STATUS_NOTBUILD)
-//							.setIsManual(false)
-//							.setStart(setStartNone);
-//					resTimeLineDTOList.add(resTimeLineDTONone);
-//					plusDay++;
-//				}
-//			}
-//		}
-//
-//		return resTimeLineDTOList;
-//	}
 }

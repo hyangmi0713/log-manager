@@ -10,5 +10,5 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 @NoArgsConstructor
 public class ResClientIdDTO {
-    private String clientId;
+    private String requestId;
 }
