@@ -37,7 +37,7 @@ public class Custom extends RunStepFlow implements SchedulerStrategy {
 
         ReqCustomRunDTO reqRunConvertDTO = new ReqCustomRunDTO()
                 .setStep(stepEntity.getStepType() + "_" + String.format("%06d", stepEntity.getStepId()))
-                .setStep_type(stepEntity.getStepType());
+                .setScript_type(stepEntity.getScriptType());
         HttpEntity<Object> requestConvert = new HttpEntity<>(reqRunConvertDTO, headers);
 
         response = callRestAPI.postRestAPI(crasServer + ReqURLController.API_POST_RUN_STEP,

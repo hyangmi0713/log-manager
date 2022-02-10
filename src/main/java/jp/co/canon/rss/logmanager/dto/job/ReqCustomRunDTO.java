@@ -9,5 +9,5 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class ReqCustomRunDTO {
     private String step;
-    private String step_type;
+    private String script_type;
 }
