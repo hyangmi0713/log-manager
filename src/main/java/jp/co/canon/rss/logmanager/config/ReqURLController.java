@@ -149,7 +149,8 @@ public class ReqURLController {
     // Rule Convert Controller URL
     public static final String API_DEFAULT_RULE_CONVERT_URL = "/api/v1/rule/convert";
     public static final String API_GET_LOG_LIST = "/log";
-    public static final String API_GET_SPECIFIC_LOG_LIST = "/log/{logId}";
+    public static final String API_GET_SPECIFIC_LOG = "/log/{logId}";
+    public static final String API_GET_SPECIFIC_LOG_ERROR = "/log/{logId}/error";
     public static final String API_POST_ADD_LOG = "/log";
     public static final String API_PATCH_EDIT_LOG = "/log/{logId}";
     public static final String API_DELETE_LOG = "/log/{logId}";
@@ -178,23 +179,26 @@ public class ReqURLController {
     public static final String API_GET_CHECK_LOGFILE_SEARCH = "/search/rc/{clientId}";
     public static final String API_POST_REQ_DOWNLOAD = "/download/rc";
     public static final String API_GET_CHECK_DOWNLOAD_STATUS = "/download/rc/{clientId}";
-    public static final String API_GET_START_FILE_DOWNLOAD = "/";
+    public static final String API_GET_START_FILE_DOWNLOAD = "/download/{fileName}";
 
     // Log Download Define
-    public static final String DOWNLOAD_STATUS_UNKNOWN = "unknown";
+    public static final String DOWNLOAD_STATUS_NOTBUILD = "notbuild";
     public static final String DOWNLOAD_STATUS_SUCCESS = "success";
-    public static final String DOWNLOAD_STATUS_ERROR = "error";
     public static final String DOWNLOAD_STATUS_PROCESSING = "processing";
+    public static final String DOWNLOAD_STATUS_PROCESSING_CRAS = "processing_cras";
     public static final String DOWNLOAD_STATUS_FAILURE = "failure";
-    public static final String DOWNLOAD_STATUS_RUNNING = "running";
     public static final String DOWNLOAD_STATUS_NOTADA = "nodata";
+    public static final String DOWNLOAD_STATUS_SUCCESS_CRAS = "success";
+    public static final String DOWNLOAD_STATUS_ERROR_CRAS = "error";
+    public static final String DOWNLOAD_STATUS_RUNNING_CRAS = "running";
+    public static final String DOWNLOAD_STATUS_NOTADA_CRAS = "nodata";
 
     // Call Cras Server : Log Download
     public static final String API_GET_ALL_CATEGORY_LIST = "http://%s:%s/api/rapid/category";
-    public static final String API_POST_REQ_RID = "http://%s:%s/api/v1/s/rapid_search/job";
-    public static final String API_GET_REQ_SEARCH_RESULT = "http://%s:%s/api/v1/s/rapid_search/job/%s";
-    public static final String API_POST_REQ_FILE_DOWNLOAD = "http://%s:%s/api/v1/s/rapid_download/job";
-    public static final String API_GET_CHECK_FILE_DOWNLOAD = "http://%s:%s/api/v1/s/rapid_download/job/%s";
+    public static final String API_POST_REQ_RID = "http://%s:%s/api/v1/job";
+    public static final String API_GET_REQ_SEARCH_RESULT = "http://%s:%s/api/v1/job/%s";
+    public static final String API_POST_REQ_FILE_DOWNLOAD = "http://%s:%s/api/v1/job";
+    public static final String API_GET_CHECK_FILE_DOWNLOAD = "http://%s:%s/api/v1/job/%s";
     public static final String API_GET_FILE_DOWNLOAD = "http://%s:%s%s";
 
     // Error Log Download Controller URL
@@ -245,6 +249,7 @@ public class ReqURLController {
     // Call Cras Server : Rule Convert Controller URL
     public static final String API_GET_LOG_LIST_CRAS = "/api/v1/convert/log";
     public static final String API_GET_SPECIFIC_LOG_CRAS = "/api/v1/convert/log/%d";
+    public static final String API_GET_SPECIFIC_LOG_ERROR_CRAS = "/api/v1/convert/log/%d/error";
     public static final String API_POST_ADD_LOG_CRAS = "/api/v1/convert/log";
     public static final String API_PATCH_EDIT_LOG_CRAS = "/api/v1/convert/log/%d";
     public static final String API_DELETE_LOG_CRAS = "/api/v1/convert/log/%d";

@@ -89,7 +89,7 @@ public class RuleConvertController {
     }
 
     // get specific log
-    @GetMapping(ReqURLController.API_GET_SPECIFIC_LOG_LIST)
+    @GetMapping(ReqURLController.API_GET_SPECIFIC_LOG)
     @Operation(summary="Get all Cras data site list")
     @ApiResponses({
             @ApiResponse(
@@ -110,7 +110,45 @@ public class RuleConvertController {
                                             @Parameter(name = "logId", description = "Cras Data Site ID", required = true, example = "1")
                                                 @Valid @PathVariable(value = "logId") @NotNull int logId) {
         try {
-            Object resConvertRuleDTOList = convertRulesService.getSpecificLog(logId, ReqURLController.API_GET_SPECIFIC_LOG_LIST);
+            Object resConvertRuleDTOList = convertRulesService.getSpecificLog(logId, ReqURLController.API_GET_SPECIFIC_LOG);
+            return ResponseEntity.status(HttpStatus.OK).body(resConvertRuleDTOList);
+        } catch (ConvertException e) {
+            log.error(e.getMessage());
+            ConvertPreviewExceptionDTO convertPreviewExceptionDTO = new ConvertPreviewExceptionDTO()
+                    .setTimestamp(e.getTimestamp())
+                    .setStatus(e.getStatus())
+                    .setCras_error(e.getCrasError())
+                    .setMessage(e.getMessage())
+                    .setPath(e.getPath());
+            return ResponseEntity
+                    .status(500)
+                    .body(convertPreviewExceptionDTO);
+        }
+    }
+
+    // get specific log error
+    @GetMapping(ReqURLController.API_GET_SPECIFIC_LOG_ERROR)
+    @Operation(summary="Get all Cras data site list")
+    @ApiResponses({
+            @ApiResponse(
+                    responseCode="200",
+                    description="OK(Successful acquisition of all Cras data site list)",
+                    content = { @Content(
+                            schema = @Schema(implementation = ResSitesNamesDTO.class),
+                            mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(
+                                    name = "example1",
+                                    value = SiteExamples.GET_CRAS_DATA_SITE_RES)) }
+            ),
+            @ApiResponse(responseCode="400", description="Bad Request"),
+            @ApiResponse(responseCode="404", description="Not Found"),
+            @ApiResponse(responseCode="500", description="Internal Server Error")
+    })
+    public ResponseEntity<?> getSpecificLogError(HttpServletRequest request,
+                                            @Parameter(name = "logId", description = "Cras Data Site ID", required = true, example = "1")
+                                            @Valid @PathVariable(value = "logId") @NotNull int logId) {
+        try {
+            Object resConvertRuleDTOList = convertRulesService.getSpecificLogError(logId, ReqURLController.API_GET_SPECIFIC_LOG_ERROR);
             return ResponseEntity.status(HttpStatus.OK).body(resConvertRuleDTOList);
         } catch (ConvertException e) {
             log.error(e.getMessage());

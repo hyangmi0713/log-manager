@@ -42,6 +42,21 @@ public class ConvertRulesService {
         }
     }
 
+    public Object getSpecificLogError(int logId, String path) throws ConvertException {
+        try {
+            String API_GET_SPECIFIC_LOG_ERROR_CRAS_URL = String.format(ReqURLController.API_GET_SPECIFIC_LOG_ERROR_CRAS,
+                    logId);
+
+            CallRestAPI callRestAPI = new CallRestAPI();
+            ResponseEntity<?> response = callRestAPI.getConvertRestAPI(crasServer+API_GET_SPECIFIC_LOG_ERROR_CRAS_URL,
+                    Object.class, path);
+            return response.getBody();
+        } catch (ConvertException e) {
+            log.error(e.getMessage());
+            throw e;
+        }
+    }
+
     public Object addLog(Object reqAddLog, String path) throws ConvertException {
         try {
             CallRestAPI callRestAPI = new CallRestAPI();
