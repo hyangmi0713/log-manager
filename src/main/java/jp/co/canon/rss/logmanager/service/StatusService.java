@@ -110,67 +110,72 @@ public class StatusService {
             // 하루에 실행해야 하는 갯수 확인
             int totalCountOfDay = 0;
             for(StepEntity stepEntity : stepEntityList) {
-                if(stepEntity.getMode().equals(RunStep.MODE_CYCLE))
-                    totalCountOfDay += 24 / stepEntity.getPeriod();
-                else if(stepEntity.getMode().equals(RunStep.MODE_TIME))
-                    totalCountOfDay += stepEntity.getTime().length;
+                if(!stepEntity.getStepType().equals(RunStep.STEPTYPE_NOTICE)
+                        && stepEntity.getEnable() == true) {
+                    if (stepEntity.getMode().equals(RunStep.MODE_CYCLE))
+                        totalCountOfDay += 24 / stepEntity.getPeriod();
+                    else if (stepEntity.getMode().equals(RunStep.MODE_TIME))
+                        totalCountOfDay += stepEntity.getTime().length;
+                }
             }
 
             for(StepEntity stepEntity : stepEntityList) {
-                LocalDateTime latestDate = null;
+                if(!stepEntity.getStepType().equals(RunStep.STEPTYPE_NOTICE)
+                        && stepEntity.getEnable() == true) {
+                    LocalDateTime latestDate = null;
 
-                for (int idx = 0; idx < RunStep.JOB_TIMELINE / totalCountOfDay; idx++) {
-                    if (stepEntity.getMode().equals(RunStep.MODE_CYCLE)) {
-                        for(int i = 0; i < 24 / stepEntity.getPeriod(); i++) {
-                            ResLastStepDTO resTimeLineDTONone = new ResLastStepDTO();
+                    for (int idx = 0; idx < RunStep.JOB_TIMELINE / totalCountOfDay; idx++) {
+                        if (stepEntity.getMode().equals(RunStep.MODE_CYCLE)) {
+                            for (int i = 0; i < 24 / stepEntity.getPeriod(); i++) {
+                                ResLastStepDTO resTimeLineDTONone = new ResLastStepDTO();
 
-                            String dateCycle = null;
+                                String dateCycle = null;
 
-                            if (idx == 0 && i == 0) {
-                                List<HistoryEntity> historyEntity = historyEntityRepository.selectRunDateLatestHistory(stepEntity.getStepId());
-                                latestDate = LocalDateTime.parse(historyEntity.get(0).getRunDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
-                            }
+                                if (idx == 0 && i == 0) {
+                                    List<HistoryEntity> historyEntity = historyEntityRepository.selectRunDateLatestHistory(stepEntity.getStepId());
+                                    latestDate = LocalDateTime.parse(historyEntity.get(0).getRunDate(), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                                }
 
-                            if (stepEntity.getCycle().equals(RunStep.CYCLE_DAY))
-                                latestDate = latestDate.plusDays(stepEntity.getPeriod());
-                            else if (stepEntity.getCycle().equals(RunStep.CYCLE_HOUR))
-                                latestDate = latestDate.plusHours(stepEntity.getPeriod());
-                            else if (stepEntity.getCycle().equals(RunStep.CYCLE_MINUTE))
-                                latestDate = latestDate.plusMinutes(stepEntity.getPeriod());
+                                if (stepEntity.getCycle().equals(RunStep.CYCLE_DAY))
+                                    latestDate = latestDate.plusDays(stepEntity.getPeriod());
+                                else if (stepEntity.getCycle().equals(RunStep.CYCLE_HOUR))
+                                    latestDate = latestDate.plusHours(stepEntity.getPeriod());
+                                else if (stepEntity.getCycle().equals(RunStep.CYCLE_MINUTE))
+                                    latestDate = latestDate.plusMinutes(stepEntity.getPeriod());
 
-                            dateCycle = latestDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                                dateCycle = latestDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-                            resTimeLineDTONone.setStepType(stepEntity.getStepType())
-                                    .setHistoryId("")
-                                    .setStepName(stepEntity.getStepName())
-                                    .setDate(dateCycle)
-                                    .setManual(false)
-                                    .setStatus(RunStep.STATUS_NOTBUILD)
-                                    .setError(new String[0]);
-                            resultRemoteStepList.add(resTimeLineDTONone);
-                        }
-                    } else if (stepEntity.getMode().equals(RunStep.MODE_TIME)) {
-                        for(String settingTime : stepEntity.getTime()) {
-                            ResLastStepDTO resTimeLineDTONone = new ResLastStepDTO();
-                            String dateTime = null;
-                            if(idx==0) {
-                                String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd "));
-                                if (LocalDateTime.parse(today+settingTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-                                        .isAfter(LocalDateTime.now()))
-                                    dateTime = LocalDateTime.now().plusDays(idx).format(DateTimeFormatter.ofPattern("yyyy-MM-dd ")) + settingTime + ":00";
-                            }
-                            else
-                                dateTime = LocalDateTime.now().plusDays(idx).format(DateTimeFormatter.ofPattern("yyyy-MM-dd ")) + settingTime + ":00";
-
-                            if(dateTime != null) {
                                 resTimeLineDTONone.setStepType(stepEntity.getStepType())
                                         .setHistoryId("")
                                         .setStepName(stepEntity.getStepName())
-                                        .setDate(dateTime)
+                                        .setDate(dateCycle)
                                         .setManual(false)
                                         .setStatus(RunStep.STATUS_NOTBUILD)
                                         .setError(new String[0]);
                                 resultRemoteStepList.add(resTimeLineDTONone);
+                            }
+                        } else if (stepEntity.getMode().equals(RunStep.MODE_TIME)) {
+                            for (String settingTime : stepEntity.getTime()) {
+                                ResLastStepDTO resTimeLineDTONone = new ResLastStepDTO();
+                                String dateTime = null;
+                                if (idx == 0) {
+                                    String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd "));
+                                    if (LocalDateTime.parse(today + settingTime, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+                                            .isAfter(LocalDateTime.now()))
+                                        dateTime = LocalDateTime.now().plusDays(idx).format(DateTimeFormatter.ofPattern("yyyy-MM-dd ")) + settingTime + ":00";
+                                } else
+                                    dateTime = LocalDateTime.now().plusDays(idx).format(DateTimeFormatter.ofPattern("yyyy-MM-dd ")) + settingTime + ":00";
+
+                                if (dateTime != null) {
+                                    resTimeLineDTONone.setStepType(stepEntity.getStepType())
+                                            .setHistoryId("")
+                                            .setStepName(stepEntity.getStepName())
+                                            .setDate(dateTime)
+                                            .setManual(false)
+                                            .setStatus(RunStep.STATUS_NOTBUILD)
+                                            .setError(new String[0]);
+                                    resultRemoteStepList.add(resTimeLineDTONone);
+                                }
                             }
                         }
                     }

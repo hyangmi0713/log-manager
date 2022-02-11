@@ -195,17 +195,4 @@ public class JobController implements JobControllerInstruction {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-//    // get time line
-//    @GetMapping(ReqURLController.API_GET_TIME_LINE)
-//    public ResponseEntity<?> getTimeLine(HttpServletRequest request, @Valid @PathVariable(value = "id") @NotNull int id) throws Exception {
-//        try {
-//            List<ResTimeLineDTO> resTimeLineDTOList = jobService.getTimeLine(id);
-//            return ResponseEntity.status(HttpStatus.OK).body(resTimeLineDTOList);
-//        } catch (ResponseStatusException e) {
-//            throw e;
-//        } catch (Exception e) {
-//            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
 }

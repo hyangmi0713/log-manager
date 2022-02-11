@@ -271,14 +271,14 @@ public class JobService {
 			for(StepEntity stepEntity : jobEntity.getSteps()) {
 				if(stepEntity.getStepType().equals(RunStep.STEPTYPE_CUSTOM)) {
 					Map<String, String> customStep = new HashMap<>();
-					customStep.put("step", stepEntity.getStepType() + "_" + String.format("%06d", stepEntity.getJobId()));
+					customStep.put("step", stepEntity.getStepType() + "_" + String.format("%06d", stepEntity.getStepId()));
 					customStep.put("script_type", stepEntity.getScriptType());
 					customStep.put("script", stepEntity.getScript());
 					addJobDto.add(customStep);
 				}
 				else {
 					Map<String, String> jobReportStep = new HashMap<>();
-					jobReportStep.put("step", stepEntity.getStepType() + "_" + String.format("%06d", stepEntity.getJobId()));
+					jobReportStep.put("step", stepEntity.getStepType() + "_" + String.format("%06d", stepEntity.getStepId()));
 					addJobDto.add(jobReportStep);
 				}
 			}
